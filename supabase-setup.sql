@@ -60,9 +60,9 @@ CREATE POLICY "Allow all on comments" ON comments FOR ALL USING (true) WITH CHEC
 
 -- 5. SEED DEFAULT USERS
 INSERT INTO users (name, email, password, phone, role) VALUES
-  ('Amarjeet',      'amarjeet@gmail.com', 'amarjeet@123', '9876543210', 'citizen'),
+  ('Amarjeet',      'amarjeet@gmail.com', 'amarjeet@123', '1234567890', 'citizen'),
   ('Priya Verma',   'citizen2@demo.com',  'citizen123',   '9876543211', 'citizen'),
-  ('Admin User',    'admin@gmail.com',    'admin123',     '9000000001', 'admin')
+  ('Admin User',    'admin@gmail.com',    'admin123',     '9876543210', 'admin')
 ON CONFLICT (email) DO NOTHING;
 
 -- 6. SEED SAMPLE COMPLAINTS

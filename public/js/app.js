@@ -542,6 +542,16 @@ async function viewComplaint(id) {
     document.getElementById('detailLocation').textContent = c.location;
     document.getElementById('detailDate').textContent = formatDateTime(c.created_at);
     document.getElementById('detailCitizen').textContent = `${c.users?.name || ''} (${c.users?.email || ''})`;
+
+    // Phone
+    const phone = c.users?.phone;
+    if (phone) {
+      document.getElementById('detailPhoneWrap').style.display = '';
+      document.getElementById('detailPhone').textContent = phone;
+      document.getElementById('detailPhone').href = `tel:${phone}`;
+    } else {
+      document.getElementById('detailPhoneWrap').style.display = 'none';
+    }
     document.getElementById('detailStatusBadge').innerHTML = getStatusBadge(c.status);
 
     // Resolved date
