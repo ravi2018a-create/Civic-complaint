@@ -1,0 +1,5 @@
+node_modules/
+civic.db
+uploads/
+.env
+*.log

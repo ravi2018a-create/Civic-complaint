@@ -1,0 +1,308 @@
+/* ===== Global Styles ===== */
+:root {
+  --primary: #0d6efd;
+  --primary-dark: #0b5ed7;
+  --success: #198754;
+  --warning: #ffc107;
+  --danger: #dc3545;
+  --info: #0dcaf0;
+  --gray-100: #f8f9fa;
+  --gray-200: #e9ecef;
+  --gray-600: #6c757d;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f0f2f5;
+  min-height: 100vh;
+}
+
+/* ===== Login Page ===== */
+.login-hero {
+  background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 40%, #6610f2 100%);
+  min-height: 100vh;
+}
+
+.feature-icon {
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+/* ===== Cards ===== */
+.stat-card {
+  border-radius: 12px;
+  border: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+  overflow: hidden;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1) !important;
+}
+
+.stat-card .stat-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.stat-card .stat-number {
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.stat-card .stat-label {
+  font-size: 0.85rem;
+  color: var(--gray-600);
+}
+
+/* Colors for stat cards */
+.stat-icon.bg-blue { background: #e7f0ff; color: #0d6efd; }
+.stat-icon.bg-orange { background: #fff3e0; color: #fd7e14; }
+.stat-icon.bg-green { background: #e8f5e9; color: #198754; }
+.stat-icon.bg-red { background: #fde8e8; color: #dc3545; }
+.stat-icon.bg-purple { background: #f3e5f5; color: #6f42c1; }
+.stat-icon.bg-cyan { background: #e0f7fa; color: #0dcaf0; }
+
+/* ===== Status Badges ===== */
+.badge-submitted {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.badge-acknowledged {
+  background-color: #cff4fc;
+  color: #055160;
+}
+
+.badge-inprogress {
+  background-color: #cfe2ff;
+  color: #084298;
+}
+
+.badge-resolved {
+  background-color: #d1e7dd;
+  color: #0f5132;
+}
+
+.badge-rejected {
+  background-color: #f8d7da;
+  color: #842029;
+}
+
+/* Priority Badges */
+.badge-low { background-color: #e2e3e5; color: #41464b; }
+.badge-medium { background-color: #fff3cd; color: #856404; }
+.badge-high { background-color: #f8d7da; color: #842029; }
+.badge-urgent { background-color: #dc3545; color: #fff; }
+
+/* ===== Table ===== */
+.table th {
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--gray-600);
+  border-bottom: 2px solid var(--gray-200);
+}
+
+.table td {
+  vertical-align: middle;
+  padding: 0.85rem 0.75rem;
+}
+
+.table tbody tr {
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.table tbody tr:hover {
+  background-color: #f0f7ff;
+}
+
+.complaint-title {
+  font-weight: 600;
+  color: #333;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== Timeline ===== */
+.timeline-item {
+  position: relative;
+  padding-left: 35px;
+  padding-bottom: 20px;
+  border-left: 2px solid var(--gray-200);
+  margin-left: 10px;
+}
+
+.timeline-item:last-child {
+  border-left: 2px solid transparent;
+  padding-bottom: 0;
+}
+
+.timeline-item .timeline-dot {
+  position: absolute;
+  left: -9px;
+  top: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--primary);
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+.timeline-item .timeline-dot.dot-admin {
+  background: #6f42c1;
+  box-shadow: 0 0 0 2px #6f42c1;
+}
+
+.timeline-item .timeline-content {
+  background: var(--gray-100);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.timeline-item .timeline-user {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.timeline-item .timeline-time {
+  font-size: 0.75rem;
+  color: var(--gray-600);
+}
+
+.timeline-item .timeline-message {
+  font-size: 0.9rem;
+  margin-top: 4px;
+}
+
+/* ===== Status Progress ===== */
+.status-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  position: relative;
+}
+
+.status-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 38px;
+  bottom: -10px;
+  width: 2px;
+  background: var(--gray-200);
+}
+
+.status-step.active:not(:last-child)::after {
+  background: var(--primary);
+}
+
+.status-step .step-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  background: var(--gray-200);
+  color: var(--gray-600);
+}
+
+.status-step.active .step-circle {
+  background: var(--primary);
+  color: #fff;
+}
+
+.status-step.completed .step-circle {
+  background: var(--success);
+  color: #fff;
+}
+
+.status-step .step-label {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.status-step .step-time {
+  font-size: 0.75rem;
+  color: var(--gray-600);
+}
+
+/* ===== Form ===== */
+.form-control:focus, .form-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .stat-card .stat-number {
+    font-size: 1.4rem;
+  }
+
+  .table {
+    font-size: 0.85rem;
+  }
+
+  .complaint-title {
+    max-width: 150px;
+  }
+}
+
+/* ===== Animations ===== */
+.page {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--gray-100);
+}
+::-webkit-scrollbar-thumb {
+  background: #bbb;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+
+/* ===== Loading Spinner ===== */
+.spinner-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(255,255,255,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
