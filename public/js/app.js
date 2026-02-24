@@ -1,5 +1,12 @@
+// ===== SUPABASE INIT =====
+const SUPABASE_URL = 'https://fpbfeynxviamquqvftzc.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwYmZleW54dmlhbXF1cXZmdHpjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAzOTg2NjYsImV4cCI6MjA1NTk3NDY2Nn0.placeholder';
+// NOTE: Replace SUPABASE_ANON_KEY above with your actual anon/public key from
+// Supabase Dashboard -> Settings -> API -> Project API keys -> anon public
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 // ===== GLOBAL STATE =====
-const API = '';
 let currentUser = null;
 let currentPage = 'login';
 let viewingComplaintId = null;
@@ -22,20 +29,20 @@ async function handleLogin(e) {
   errorDiv.classList.add('d-none');
 
   try {
-    const res = await fetch(`${API}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    const data = await res.json();
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, name, email, phone, role')
+      .eq('email', email)
+      .eq('password', password)
+      .single();
 
-    if (!res.ok) {
-      errorDiv.textContent = data.error || 'Login failed';
+    if (error || !data) {
+      errorDiv.textContent = 'Invalid email or password';
       errorDiv.classList.remove('d-none');
       return;
     }
 
-    currentUser = data.user;
+    currentUser = data;
     localStorage.setItem('civicUser', JSON.stringify(currentUser));
     setupNavigation();
     if (currentUser.role === 'admin') {
@@ -44,7 +51,7 @@ async function handleLogin(e) {
       showPage('citizenDashboard');
     }
   } catch (err) {
-    errorDiv.textContent = 'Server connection failed. Make sure the server is running.';
+    errorDiv.textContent = 'Connection failed. Please try again.';
     errorDiv.classList.remove('d-none');
   } finally {
     btn.disabled = false;
@@ -142,18 +149,31 @@ function formatDateTime(dateStr) {
 // ===== CITIZEN DASHBOARD =====
 async function loadCitizenComplaints() {
   try {
-    const res = await fetch(`${API}/api/complaints/user/${currentUser.id}`);
-    let complaints = await res.json();
+    // Fetch all complaints for this citizen
+    const { data: allComplaints, error } = await supabase
+      .from('complaints')
+      .select('*, users!complaints_user_id_fkey(name)')
+      .eq('user_id', currentUser.id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    // Map citizen_name from join
+    let complaints = (allComplaints || []).map(c => ({
+      ...c,
+      citizen_name: c.users?.name || ''
+    }));
 
     // Client-side filtering
     const search = document.getElementById('citizenSearch')?.value?.toLowerCase() || '';
     const statusFilter = document.getElementById('citizenStatusFilter')?.value || 'all';
 
+    let filtered = [...complaints];
     if (statusFilter !== 'all') {
-      complaints = complaints.filter(c => c.status === statusFilter);
+      filtered = filtered.filter(c => c.status === statusFilter);
     }
     if (search) {
-      complaints = complaints.filter(c =>
+      filtered = filtered.filter(c =>
         c.title.toLowerCase().includes(search) ||
         c.complaint_id.toLowerCase().includes(search) ||
         c.location.toLowerCase().includes(search)
@@ -161,12 +181,11 @@ async function loadCitizenComplaints() {
     }
 
     // Stats
-    const allComplaints = await (await fetch(`${API}/api/complaints/user/${currentUser.id}`)).json();
     const stats = {
-      total: allComplaints.length,
-      submitted: allComplaints.filter(c => c.status === 'Submitted' || c.status === 'Acknowledged').length,
-      inProgress: allComplaints.filter(c => c.status === 'In Progress').length,
-      resolved: allComplaints.filter(c => c.status === 'Resolved').length
+      total: complaints.length,
+      submitted: complaints.filter(c => c.status === 'Submitted' || c.status === 'Acknowledged').length,
+      inProgress: complaints.filter(c => c.status === 'In Progress').length,
+      resolved: complaints.filter(c => c.status === 'Resolved').length
     };
 
     document.getElementById('citizenStats').innerHTML = `
@@ -208,14 +227,14 @@ async function loadCitizenComplaints() {
     const tbody = document.getElementById('citizenComplaintsList');
     const noData = document.getElementById('citizenNoData');
 
-    if (complaints.length === 0) {
+    if (filtered.length === 0) {
       tbody.innerHTML = '';
       noData.classList.remove('d-none');
       return;
     }
 
     noData.classList.add('d-none');
-    tbody.innerHTML = complaints.map(c => `
+    tbody.innerHTML = filtered.map(c => `
       <tr onclick="viewComplaint(${c.id})">
         <td><code>${c.complaint_id}</code></td>
         <td><div class="complaint-title">${c.title}</div></td>
@@ -235,9 +254,18 @@ async function loadCitizenComplaints() {
 // ===== ADMIN DASHBOARD =====
 async function loadAdminDashboard() {
   try {
-    // Load stats
-    const statsRes = await fetch(`${API}/api/stats`);
-    const stats = await statsRes.json();
+    // Load all complaints for stats
+    const { data: all, error } = await supabase.from('complaints').select('status, category');
+    if (error) throw error;
+
+    const stats = {
+      total: all.length,
+      submitted: all.filter(c => c.status === 'Submitted').length,
+      acknowledged: all.filter(c => c.status === 'Acknowledged').length,
+      inProgress: all.filter(c => c.status === 'In Progress').length,
+      resolved: all.filter(c => c.status === 'Resolved').length,
+      rejected: all.filter(c => c.status === 'Rejected').length
+    };
 
     document.getElementById('adminStats').innerHTML = `
       <div class="col-6 col-lg-2">
@@ -296,7 +324,6 @@ async function loadAdminDashboard() {
       </div>
     `;
 
-    // Load complaints
     loadAdminComplaints();
   } catch (err) {
     console.error('Error loading admin dashboard:', err);
@@ -310,25 +337,36 @@ async function loadAdminComplaints() {
     const status = document.getElementById('adminStatusFilter')?.value || 'all';
     const category = document.getElementById('adminCategoryFilter')?.value || 'all';
 
-    const params = new URLSearchParams();
-    if (status !== 'all') params.set('status', status);
-    if (category !== 'all') params.set('category', category);
-    if (search) params.set('search', search);
+    let query = supabase
+      .from('complaints')
+      .select('*, users!complaints_user_id_fkey(name)')
+      .order('created_at', { ascending: false });
 
-    const res = await fetch(`${API}/api/complaints?${params}`);
-    const complaints = await res.json();
+    if (status !== 'all') query = query.eq('status', status);
+    if (category !== 'all') query = query.eq('category', category);
+    if (search) {
+      query = query.or(`title.ilike.%${search}%,complaint_id.ilike.%${search}%,location.ilike.%${search}%`);
+    }
+
+    const { data: complaints, error } = await query;
+    if (error) throw error;
+
+    const mapped = (complaints || []).map(c => ({
+      ...c,
+      citizen_name: c.users?.name || ''
+    }));
 
     const tbody = document.getElementById('adminComplaintsList');
     const noData = document.getElementById('adminNoData');
 
-    if (complaints.length === 0) {
+    if (mapped.length === 0) {
       tbody.innerHTML = '';
       noData.classList.remove('d-none');
       return;
     }
 
     noData.classList.add('d-none');
-    tbody.innerHTML = complaints.map(c => `
+    tbody.innerHTML = mapped.map(c => `
       <tr onclick="viewComplaint(${c.id})">
         <td><code>${c.complaint_id}</code></td>
         <td><div class="complaint-title">${c.title}</div></td>
@@ -405,41 +443,50 @@ async function submitComplaint(e) {
   btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Submitting...';
 
   try {
-    const formData = new FormData();
-    formData.append('title', document.getElementById('compTitle').value);
-    formData.append('category', document.getElementById('compCategory').value);
-    formData.append('description', document.getElementById('compDescription').value);
-    formData.append('location', document.getElementById('compLocation').value);
-    formData.append('priority', document.getElementById('compPriority').value);
-    formData.append('user_id', currentUser.id);
+    // Generate complaint ID via Supabase RPC
+    const { data: cid, error: cidErr } = await supabase.rpc('get_next_complaint_id');
+    if (cidErr) throw cidErr;
 
-    const imageFile = document.getElementById('compImage').files[0];
-    if (imageFile) formData.append('image', imageFile);
+    const complaintData = {
+      complaint_id: cid,
+      title: document.getElementById('compTitle').value,
+      category: document.getElementById('compCategory').value,
+      description: document.getElementById('compDescription').value,
+      location: document.getElementById('compLocation').value,
+      priority: document.getElementById('compPriority').value || 'Medium',
+      user_id: currentUser.id,
+      image_path: null
+    };
 
-    const res = await fetch(`${API}/api/complaints`, {
-      method: 'POST',
-      body: formData
+    // Insert complaint
+    const { data: inserted, error: insErr } = await supabase
+      .from('complaints')
+      .insert(complaintData)
+      .select()
+      .single();
+
+    if (insErr) throw insErr;
+
+    // Add initial comment
+    await supabase.from('comments').insert({
+      complaint_id: inserted.id,
+      user_id: currentUser.id,
+      message: 'Complaint submitted successfully.'
     });
-    const data = await res.json();
-
-    if (!res.ok) {
-      showToast(data.error || 'Failed to submit complaint');
-      return;
-    }
 
     const successDiv = document.getElementById('complaintSuccess');
     document.getElementById('successMessage').innerHTML =
-      `Complaint submitted! Your tracking ID is <strong>${data.complaint_id}</strong>`;
+      `Complaint submitted! Your tracking ID is <strong>${cid}</strong>`;
     successDiv.classList.remove('d-none');
 
     document.getElementById('complaintForm').reset();
     document.getElementById('imagePreview').innerHTML = '';
     document.getElementById('charCount').textContent = '0';
 
-    showToast(`Complaint ${data.complaint_id} submitted successfully!`);
+    showToast(`Complaint ${cid} submitted successfully!`);
   } catch (err) {
     console.error('Error submitting complaint:', err);
-    showToast('Failed to submit complaint. Check server connection.');
+    showToast('Failed to submit complaint. Please try again.');
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<i class="bi bi-send"></i> Submit Complaint';
@@ -452,8 +499,23 @@ async function viewComplaint(id) {
   showPage('complaintDetails');
 
   try {
-    const res = await fetch(`${API}/api/complaints/${id}`);
-    const c = await res.json();
+    // Fetch complaint with citizen info
+    const { data: c, error: cErr } = await supabase
+      .from('complaints')
+      .select('*, users!complaints_user_id_fkey(name, email, phone)')
+      .eq('id', id)
+      .single();
+
+    if (cErr) throw cErr;
+
+    // Fetch comments with user info
+    const { data: comments, error: cmErr } = await supabase
+      .from('comments')
+      .select('*, users(name, role)')
+      .eq('complaint_id', id)
+      .order('created_at', { ascending: true });
+
+    if (cmErr) throw cmErr;
 
     document.getElementById('detailComplaintId').textContent = c.complaint_id;
     document.getElementById('detailTitle').textContent = c.title;
@@ -462,7 +524,7 @@ async function viewComplaint(id) {
     document.getElementById('detailPriority').innerHTML = getPriorityBadge(c.priority);
     document.getElementById('detailLocation').textContent = c.location;
     document.getElementById('detailDate').textContent = formatDateTime(c.created_at);
-    document.getElementById('detailCitizen').textContent = `${c.citizen_name} (${c.citizen_email})`;
+    document.getElementById('detailCitizen').textContent = `${c.users?.name || ''} (${c.users?.email || ''})`;
     document.getElementById('detailStatusBadge').innerHTML = getStatusBadge(c.status);
 
     // Resolved date
@@ -490,7 +552,12 @@ async function viewComplaint(id) {
     }
 
     // Comments timeline
-    renderTimeline(c.comments || []);
+    const mappedComments = (comments || []).map(cm => ({
+      ...cm,
+      user_name: cm.users?.name || '',
+      user_role: cm.users?.role || 'citizen'
+    }));
+    renderTimeline(mappedComments);
 
     // Status progress
     renderStatusProgress(c.status);
@@ -567,21 +634,28 @@ async function updateStatus() {
   const comment = document.getElementById('statusComment').value;
 
   try {
-    const res = await fetch(`${API}/api/complaints/${viewingComplaintId}/status`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status, comment, user_id: currentUser.id })
-    });
+    const now = new Date().toISOString();
+    const updateData = { status, updated_at: now };
+    if (status === 'Resolved') updateData.resolved_at = now;
 
-    if (!res.ok) {
-      const data = await res.json();
-      showToast(data.error || 'Failed to update status');
-      return;
-    }
+    const { error: updErr } = await supabase
+      .from('complaints')
+      .update(updateData)
+      .eq('id', viewingComplaintId);
+
+    if (updErr) throw updErr;
+
+    // Add status change comment
+    const msg = comment || `Status changed to "${status}"`;
+    await supabase.from('comments').insert({
+      complaint_id: viewingComplaintId,
+      user_id: currentUser.id,
+      message: msg
+    });
 
     showToast(`Status updated to "${status}"`);
     document.getElementById('statusComment').value = '';
-    viewComplaint(viewingComplaintId); // Reload
+    viewComplaint(viewingComplaintId);
   } catch (err) {
     console.error('Error updating status:', err);
     showToast('Failed to update status');
@@ -592,7 +666,14 @@ async function deleteComplaint() {
   if (!confirm('Are you sure you want to delete this complaint? This action cannot be undone.')) return;
 
   try {
-    await fetch(`${API}/api/complaints/${viewingComplaintId}`, { method: 'DELETE' });
+    // Comments deleted automatically via ON DELETE CASCADE
+    const { error } = await supabase
+      .from('complaints')
+      .delete()
+      .eq('id', viewingComplaintId);
+
+    if (error) throw error;
+
     showToast('Complaint deleted successfully');
     showPage('adminDashboard');
   } catch (err) {
@@ -607,19 +688,21 @@ async function addComment(e) {
   if (!message) return;
 
   try {
-    const res = await fetch(`${API}/api/complaints/${viewingComplaintId}/comments`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: currentUser.id, message })
+    const { error: cmErr } = await supabase.from('comments').insert({
+      complaint_id: viewingComplaintId,
+      user_id: currentUser.id,
+      message
     });
+    if (cmErr) throw cmErr;
 
-    if (!res.ok) {
-      showToast('Failed to add comment');
-      return;
-    }
+    // Update complaint timestamp
+    await supabase
+      .from('complaints')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', viewingComplaintId);
 
     document.getElementById('commentInput').value = '';
-    viewComplaint(viewingComplaintId); // Reload
+    viewComplaint(viewingComplaintId);
     showToast('Comment added');
   } catch (err) {
     console.error('Error adding comment:', err);
