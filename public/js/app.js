@@ -2,7 +2,7 @@
 const SUPABASE_URL = 'https://fpbfeynxviamquqvftzc.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwYmZleW54dmlhbXF1cXZmdHpjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5MzYyNzYsImV4cCI6MjA4NzUxMjI3Nn0.BNvslR1dCcEBfYbY-0w-uYSy82zkTJxlJi12B1yNPzc';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ===== GLOBAL STATE =====
 let currentUser = null;
@@ -27,7 +27,7 @@ async function handleLogin(e) {
   errorDiv.classList.add('d-none');
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await sb
       .from('users')
       .select('id, name, email, phone, role')
       .eq('email', email)
@@ -148,7 +148,7 @@ function formatDateTime(dateStr) {
 async function loadCitizenComplaints() {
   try {
     // Fetch all complaints for this citizen
-    const { data: allComplaints, error } = await supabase
+    const { data: allComplaints, error } = await sb
       .from('complaints')
       .select('*, users!complaints_user_id_fkey(name)')
       .eq('user_id', currentUser.id)
@@ -253,7 +253,7 @@ async function loadCitizenComplaints() {
 async function loadAdminDashboard() {
   try {
     // Load all complaints for stats
-    const { data: all, error } = await supabase.from('complaints').select('status, category');
+    const { data: all, error } = await sb.from('complaints').select('status, category');
     if (error) throw error;
 
     const stats = {
@@ -335,7 +335,7 @@ async function loadAdminComplaints() {
     const status = document.getElementById('adminStatusFilter')?.value || 'all';
     const category = document.getElementById('adminCategoryFilter')?.value || 'all';
 
-    let query = supabase
+    let query = sb
       .from('complaints')
       .select('*, users!complaints_user_id_fkey(name)')
       .order('created_at', { ascending: false });
@@ -442,7 +442,7 @@ async function submitComplaint(e) {
 
   try {
     // Generate complaint ID via Supabase RPC
-    const { data: cid, error: cidErr } = await supabase.rpc('get_next_complaint_id');
+    const { data: cid, error: cidErr } = await sb.rpc('get_next_complaint_id');
     if (cidErr) throw cidErr;
 
     const complaintData = {
@@ -457,7 +457,7 @@ async function submitComplaint(e) {
     };
 
     // Insert complaint
-    const { data: inserted, error: insErr } = await supabase
+    const { data: inserted, error: insErr } = await sb
       .from('complaints')
       .insert(complaintData)
       .select()
@@ -466,7 +466,7 @@ async function submitComplaint(e) {
     if (insErr) throw insErr;
 
     // Add initial comment
-    await supabase.from('comments').insert({
+    await sb.from('comments').insert({
       complaint_id: inserted.id,
       user_id: currentUser.id,
       message: 'Complaint submitted successfully.'
@@ -498,7 +498,7 @@ async function viewComplaint(id) {
 
   try {
     // Fetch complaint with citizen info
-    const { data: c, error: cErr } = await supabase
+    const { data: c, error: cErr } = await sb
       .from('complaints')
       .select('*, users!complaints_user_id_fkey(name, email, phone)')
       .eq('id', id)
@@ -507,7 +507,7 @@ async function viewComplaint(id) {
     if (cErr) throw cErr;
 
     // Fetch comments with user info
-    const { data: comments, error: cmErr } = await supabase
+    const { data: comments, error: cmErr } = await sb
       .from('comments')
       .select('*, users(name, role)')
       .eq('complaint_id', id)
@@ -636,7 +636,7 @@ async function updateStatus() {
     const updateData = { status, updated_at: now };
     if (status === 'Resolved') updateData.resolved_at = now;
 
-    const { error: updErr } = await supabase
+    const { error: updErr } = await sb
       .from('complaints')
       .update(updateData)
       .eq('id', viewingComplaintId);
@@ -645,7 +645,7 @@ async function updateStatus() {
 
     // Add status change comment
     const msg = comment || `Status changed to "${status}"`;
-    await supabase.from('comments').insert({
+    await sb.from('comments').insert({
       complaint_id: viewingComplaintId,
       user_id: currentUser.id,
       message: msg
@@ -665,7 +665,7 @@ async function deleteComplaint() {
 
   try {
     // Comments deleted automatically via ON DELETE CASCADE
-    const { error } = await supabase
+    const { error } = await sb
       .from('complaints')
       .delete()
       .eq('id', viewingComplaintId);
@@ -686,7 +686,7 @@ async function addComment(e) {
   if (!message) return;
 
   try {
-    const { error: cmErr } = await supabase.from('comments').insert({
+    const { error: cmErr } = await sb.from('comments').insert({
       complaint_id: viewingComplaintId,
       user_id: currentUser.id,
       message
@@ -694,7 +694,7 @@ async function addComment(e) {
     if (cmErr) throw cmErr;
 
     // Update complaint timestamp
-    await supabase
+    await sb
       .from('complaints')
       .update({ updated_at: new Date().toISOString() })
       .eq('id', viewingComplaintId);
