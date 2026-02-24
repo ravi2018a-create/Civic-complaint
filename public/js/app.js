@@ -1,8 +1,6 @@
 // ===== SUPABASE INIT =====
 const SUPABASE_URL = 'https://fpbfeynxviamquqvftzc.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwYmZleW54dmlhbXF1cXZmdHpjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAzOTg2NjYsImV4cCI6MjA1NTk3NDY2Nn0.placeholder';
-// NOTE: Replace SUPABASE_ANON_KEY above with your actual anon/public key from
-// Supabase Dashboard -> Settings -> API -> Project API keys -> anon public
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwYmZleW54dmlhbXF1cXZmdHpjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5MzYyNzYsImV4cCI6MjA4NzUxMjI3Nn0.BNvslR1dCcEBfYbY-0w-uYSy82zkTJxlJi12B1yNPzc';
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
