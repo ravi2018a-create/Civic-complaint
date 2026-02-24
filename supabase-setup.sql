@@ -43,10 +43,15 @@ CREATE TABLE IF NOT EXISTS comments (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 4. DISABLE ROW LEVEL SECURITY (for MVP demo)
+-- 4. ROW LEVEL SECURITY (for MVP demo)
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE complaints ENABLE ROW LEVEL SECURITY;
 ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if any, then recreate
+DROP POLICY IF EXISTS "Allow all on users" ON users;
+DROP POLICY IF EXISTS "Allow all on complaints" ON complaints;
+DROP POLICY IF EXISTS "Allow all on comments" ON comments;
 
 -- Allow public read/write for demo (in production, lock this down!)
 CREATE POLICY "Allow all on users" ON users FOR ALL USING (true) WITH CHECK (true);
@@ -91,3 +96,20 @@ BEGIN
   RETURN next_id;
 END;
 $$ LANGUAGE plpgsql;
+
+-- 9. STORAGE BUCKET FOR COMPLAINT IMAGES
+INSERT INTO storage.buckets (id, name, public) VALUES ('complaint-images', 'complaint-images', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Allow public access to complaint images
+DROP POLICY IF EXISTS "Allow public read on complaint-images" ON storage.objects;
+CREATE POLICY "Allow public read on complaint-images" ON storage.objects
+  FOR SELECT USING (bucket_id = 'complaint-images');
+
+DROP POLICY IF EXISTS "Allow public upload on complaint-images" ON storage.objects;
+CREATE POLICY "Allow public upload on complaint-images" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'complaint-images');
+
+DROP POLICY IF EXISTS "Allow public update on complaint-images" ON storage.objects;
+CREATE POLICY "Allow public update on complaint-images" ON storage.objects
+  FOR UPDATE USING (bucket_id = 'complaint-images');

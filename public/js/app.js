@@ -445,6 +445,25 @@ async function submitComplaint(e) {
     const { data: cid, error: cidErr } = await sb.rpc('get_next_complaint_id');
     if (cidErr) throw cidErr;
 
+    // Upload image if selected
+    let imagePath = null;
+    const imageFile = document.getElementById('compImage')?.files[0];
+    if (imageFile) {
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `${cid}_${Date.now()}.${fileExt}`;
+      const { data: uploadData, error: uploadErr } = await sb.storage
+        .from('complaint-images')
+        .upload(fileName, imageFile);
+      if (uploadErr) {
+        console.error('Image upload error:', uploadErr);
+      } else {
+        const { data: urlData } = sb.storage
+          .from('complaint-images')
+          .getPublicUrl(fileName);
+        imagePath = urlData.publicUrl;
+      }
+    }
+
     const complaintData = {
       complaint_id: cid,
       title: document.getElementById('compTitle').value,
@@ -453,7 +472,7 @@ async function submitComplaint(e) {
       location: document.getElementById('compLocation').value,
       priority: document.getElementById('compPriority').value || 'Medium',
       user_id: currentUser.id,
-      image_path: null
+      image_path: imagePath
     };
 
     // Insert complaint
